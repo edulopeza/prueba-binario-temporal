@@ -1,0 +1,31 @@
+name: Traer recursos
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  traer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Descargar y verificar
+        run: |
+          python3 -c "
+import json, hashlib, urllib.request, os
+m = json.load(open('manifiesto.json'))
+os.makedirs('recursos', exist_ok=True)
+for f in m['ficheros']:
+    data = urllib.request.urlopen(f['url']).read()
+    h = hashlib.sha256(data).hexdigest()
+    if h != f['sha256']:
+        raise SystemExit('FALLO de verificacion en ' + f['nombre'])
+    open(os.path.join('recursos', f['nombre']), 'wb').write(data)
+    print('ok', f['nombre'], len(data))
+"
+      - name: Publicar
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add recursos/
+          git commit -m "Anade los recursos editables"
+          git push
